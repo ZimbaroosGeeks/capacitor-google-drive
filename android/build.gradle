@@ -56,18 +56,23 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 
+    // for runtime permission
+    implementation 'com.karumi:dexter:6.2.1'
+
+    //for top side toast, text with animation
+    implementation 'net.steamcrafted:load-toast:1.0.12'
+
+
+    // google drive api libs
+    //google auth
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
-    implementation 'com.google.android.material:material:1.0.0-beta01'
-    implementation "com.google.android.gms:play-services-base:17.5.0"
-    implementation "com.google.android.gms:play-services-auth:19.0.0"
-    implementation "com.google.android.gms:play-services-games:21.0.0"
     implementation 'com.google.http-client:google-http-client-gson:1.26.0'
-    implementation ('com.google.apis:google-api-services-drive:v3-rev136-1.25.0')
-            {
-                exclude group: 'org.apache.httpcomponents'
-            }
-    implementation('com.google.api-client:google-api-client-android:1.26.0')
-            {
-                exclude group: 'org.apache.httpcomponents'
-            }
+    //google client api
+    implementation('com.google.api-client:google-api-client-android:1.26.0') {
+        exclude group: 'org.apache.httpcomponents'
+    }
+    //google services api
+    implementation('com.google.apis:google-api-services-drive:v3-rev136-1.25.0') {
+        exclude group: 'org.apache.httpcomponents'
+    }
 }
