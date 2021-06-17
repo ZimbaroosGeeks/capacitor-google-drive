@@ -11,11 +11,13 @@ export class GoogleDriveWeb extends WebPlugin implements GoogleDrivePlugin {
   }
   async getFolderData():Promise<any>{
   }
-  async uploadFile():Promise<any>{
+  async uploadFile(options:{filePath:string,mimeType:string}):Promise<any>{
+    console.log('ECHO', options);
+    return options;
   }
   async signOut():Promise<any>{
   }
-  async dawnloadFile(options: { fileId:string,fileName:string }): Promise<any> {
+  async dawnloadFile(options:{ fileId:string,fileName:string,fileStorePath:string}): Promise<any> {
     console.log('ECHO', options);
     return options;
   }

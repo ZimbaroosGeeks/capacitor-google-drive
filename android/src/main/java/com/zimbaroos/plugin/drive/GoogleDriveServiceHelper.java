@@ -101,7 +101,7 @@ public class GoogleDriveServiceHelper {
     /**
      * Upload the file to the user's My Drive Folder.
      */
-    public Task<Boolean> uploadFileToGoogleDrive(String path) {
+    public Task<File> uploadFileToGoogleDrive(String path,String mimeType) {
 
         if (folderId.isEmpty()){
             Log.e(TAG, "uploadFileToGoogleDrive: folder id not present" );
@@ -117,15 +117,15 @@ public class GoogleDriveServiceHelper {
             File fileMetadata = new File();
             fileMetadata.setName(filePath.getName());
             fileMetadata.setParents(Collections.singletonList(folderId));
-            fileMetadata.setMimeType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            fileMetadata.setMimeType(mimeType);
 
-            FileContent mediaContent = new FileContent("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filePath);
+            FileContent mediaContent = new FileContent(mimeType, filePath);
             File file = mDriveService.files().create(fileMetadata, mediaContent)
                     .setFields("id")
                     .execute();
             System.out.println("File ID: " + file.getId());
 
-            return false;
+            return file;
         });
     }
 
@@ -138,7 +138,7 @@ public class GoogleDriveServiceHelper {
             public Boolean call() throws Exception {
                 // Retrieve the metadata as a File object.
                 OutputStream outputStream = new FileOutputStream(fileSaveLocation);
-                mDriveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
+              mDriveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
                 return true;
             }
         });

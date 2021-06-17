@@ -158,20 +158,7 @@ public class GoogleDrivePlugin extends Plugin {
     public void onSignIn(PluginCall call,ActivityResult result) {
         Log.i("Sign In", result.getData().toString());
         handleSignInResult(result.getData());
-//    switch (requestCode) {
-//      case REQUEST_CODE_SIGN_IN:
-//        if (resultCode == Activity.RESULT_OK && resultData != null) {
-//          handleSignInResult(resultData);
-//        }
-//        break;
-//
-//      case PICK_FILE_REQUEST:
-//        if(resultData == null){
-//          //no data present
-//          return;
-//        }
-//        break;
-//    }
+
     }
 
     /**
@@ -199,7 +186,7 @@ public class GoogleDrivePlugin extends Plugin {
                     // Its instantiation is required before handling any onClick actions.
                     mDriveServiceHelper = new GoogleDriveServiceHelper(googleDriveService);
 
-                    showMessage("Sign-In done...!!");
+                    showMessage("Sign-In Success");
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
@@ -303,7 +290,8 @@ public class GoogleDrivePlugin extends Plugin {
     @PluginMethod
     // This method will get call when user click on upload file button
     public void uploadFile(PluginCall call) {
-
+                    String filePath = call.getString("filePath");
+                    String mimeType = call.getString("mimeType");
         // Get the Uri of the selected file
         String selectedFilePath = "/storage/emulated/0/Movies/ScreenRecord/20201217120339.mp4";
 
@@ -311,13 +299,13 @@ public class GoogleDrivePlugin extends Plugin {
         if(selectedFilePath != null && !selectedFilePath.equals("")){
             if (mDriveServiceHelper != null) {
                 requestForStoragePermission(call);
-                mDriveServiceHelper.uploadFileToGoogleDrive(selectedFilePath)
-                        .addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                mDriveServiceHelper.uploadFileToGoogleDrive(filePath,mimeType)
+                        .addOnSuccessListener(new OnSuccessListener<com.google.api.services.drive.model.File>() {
                             @Override
-                            public void onSuccess(Boolean result) {
+                            public void onSuccess(com.google.api.services.drive.model.File result) {
                                 showMessage("File uploaded ...!!");
-                                ret.put("uploded",result);
-                                call.resolve();
+                                ret.put("File",result);
+                                call.resolve(ret);
                             }
                         })
                         .addOnFailureListener(new OnFailureListener() {
@@ -341,7 +329,7 @@ public class GoogleDrivePlugin extends Plugin {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
 
-                            showMessage("Sign-Out is done...!!");
+                            showMessage("Sign-Out");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -349,6 +337,7 @@ public class GoogleDrivePlugin extends Plugin {
                         public void onFailure(@NonNull Exception exception) {
                             showMessage("Unable to sign out.");
                             Log.e(TAG, "Unable to sign out.", exception);
+                            call.reject(exception.getLocalizedMessage());
                         }
                     });
         }
@@ -356,9 +345,10 @@ public class GoogleDrivePlugin extends Plugin {
     @PluginMethod
     public void dawnloadFile(PluginCall call){
         requestForStoragePermission(call);
-        String fileStorePath = "/storage/emulated/0/Example_Download";
+//        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileName = call.getString("fileName");
         String fileId = call.getString("fileId");
+        String fileStorePath = call.getString("dawnloadPath");
         mDriveServiceHelper.downloadFile(new java.io.File(fileStorePath, fileName), fileId)
                 .addOnSuccessListener(new OnSuccessListener<Boolean>() {
                     @Override
@@ -380,7 +370,6 @@ public class GoogleDrivePlugin extends Plugin {
                 });
 
     }
-
 
     public void showMessage(String message) {
         Log.i(TAG, message);

@@ -4,9 +4,9 @@ export interface GoogleDrivePlugin {
 signIn():any;
 createFolder():any;
 getFolderData():any;
-uploadFile():any;
+uploadFile(options: {filePath:string,mimeType:string}):Promise<any>;
 signOut():any;
-dawnloadFile(options: {fileId:string,fileName:string}):Promise<any>;
+dawnloadFile(options: {fileId:string,fileName:string,fileStorePath:string}):Promise<any>;
 
 }
 
