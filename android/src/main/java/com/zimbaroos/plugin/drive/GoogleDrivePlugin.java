@@ -252,7 +252,7 @@ public class GoogleDrivePlugin extends Plugin {
         }
     }
     @PluginMethod
-    public void dawnloadFile(PluginCall call){
+    public void dawnloadFile(PluginCall call) {
         requestForStoragePermission(call);
 //        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileName = call.getString("fileName");
@@ -264,25 +264,27 @@ public class GoogleDrivePlugin extends Plugin {
             file.mkdir();
         }
 
-        mDriveServiceHelper.downloadFile(new java.io.File(fileStorePath, fileName), fileId)
-                .addOnSuccessListener(new OnSuccessListener<Boolean>() {
-                    @Override
-                    public void onSuccess(Boolean result) {
+        if (mDriveServiceHelper != null) {
+            mDriveServiceHelper.downloadFile(new java.io.File(fileStorePath, fileName), fileId)
+                    .addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                        @Override
+                        public void onSuccess(Boolean result) {
 
-                        if (result)
-                        Log.i("File","Successfully downloaded file ...!!");
-                        else
-                        Log.i("File","Not Able to downloaded file ...!!");
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.e("TAG", "onFailure: error: "+e.getMessage());
-                        call.reject(e.toString());
-                    }
-                });
+                            if (result)
+                                Log.i("File", "Successfully downloaded file ...!!");
+                            else
+                                Log.i("File", "Not Able to downloaded file ...!!");
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.e("TAG", "onFailure: error: " + e.getMessage());
+                            call.reject(e.toString());
+                        }
+                    });
 
+        }
     }
     
 
@@ -291,28 +293,22 @@ public class GoogleDrivePlugin extends Plugin {
         requestForStoragePermission(call);
 //        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileId = call.getString("fileId");
-        mDriveServiceHelper.deleteFolderFile(fileId).addOnSuccessListener(new OnSuccessListener<Boolean>() {
-            @Override
-            public void onSuccess(Boolean aBoolean) {
-                ret.put("result",aBoolean);
-                call.resolve(ret);
-            }
-        })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        call.reject(e.toString());
-                    }
-                });
-
+        if(mDriveServiceHelper != null) {
+            mDriveServiceHelper.deleteFolderFile(fileId).addOnSuccessListener(new OnSuccessListener<Boolean>() {
+                @Override
+                public void onSuccess(Boolean aBoolean) {
+                    ret.put("result", aBoolean);
+                    call.resolve(ret);
+                }
+            })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            call.reject(e.toString());
+                        }
+                    });
+        }
 
     }
-
-
-
-//
-//    public void showMessage(String message) {
-//        Log.i(TAG, message);
-//        Toast.makeText(getContext(),message, Toast.LENGTH_SHORT).show();
-//    }
+    
 }
