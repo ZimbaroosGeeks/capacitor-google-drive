@@ -16,7 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-import static com.zimbaroos.plugin.drive.GoogleDrivePlugin.folderId;
+//import static com.zimbaroos.plugin.drive.GoogleDrivePlugin.folderId;
 
 public class GoogleDriveServiceHelper {
 
@@ -24,74 +24,22 @@ public class GoogleDriveServiceHelper {
     private final Executor mExecutor = Executors.newSingleThreadExecutor();
     private final Drive mDriveService;
 
-    private final String FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
-    private final String SHEET_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    private final String FOLDER_NAME = "Example_Folder";
-
     public GoogleDriveServiceHelper(Drive driveService) {
         mDriveService = driveService;
     }
 
 
     /**
-     * Check Folder present or not in the user's My Drive.
-     */
-    public Task<String> isFolderPresent() {
-        return Tasks.call(mExecutor, () -> {
-            FileList result = mDriveService.files().list().setQ("mimeType='application/vnd.google-apps.folder' and trashed=false").execute();
-            for (File file : result.getFiles()) {
-                if (file.getName().equals(FOLDER_NAME))
-                    return file.getId();
-            }
-            return "";
-        });
-    }
-
-    /**
-     * Creates a Folder in the user's My Drive.
-     */
-    public Task<String> createFolder() {
-        return Tasks.call(mExecutor, () -> {
-            File metadata = new File()
-                    .setParents(Collections.singletonList("root"))
-                    .setMimeType(FOLDER_MIME_TYPE)
-                    .setName(FOLDER_NAME);
-
-            File googleFolder = mDriveService.files().create(metadata).execute();
-            if (googleFolder == null) {
-                throw new IOException("Null result when requesting Folder creation.");
-            }
-
-            return googleFolder.getId();
-        });
-    }
-
-    /**
-     * Get all the file present in the user's My Drive Folder.
+     * Get all the file present in the user's  Drive appDataFolder.
      */
     public Task<FileList> getFolderFileList() {
 
-//        ArrayList<GoogleDriveFileHolder> fileList = new ArrayList<>();
-
-        if (folderId.isEmpty()){
-            Log.e(TAG, "getFolderFileList: folder id not present" );
-            isFolderPresent().addOnSuccessListener(id -> folderId=id)
-                    .addOnFailureListener(exception -> Log.e(TAG, "Couldn't create file.", exception));
-        }
-
         return Tasks.call(mExecutor, () -> {
             FileList result = mDriveService.files().list()
-                    .setQ("mimeType = '" + SHEET_MIME_TYPE + "' and trashed=false and parents = '" + folderId + "' ")
-                    .setSpaces("drive")
+//                    .setQ("mimeType = '" + SHEET_MIME_TYPE + "' and trashed=false and parents = '" + folderId + "' ")
+                    .setSpaces("appDataFolder")
                     .execute();
 
-//            for (int i = 0; i < result.getFiles().size(); i++) {
-//                GoogleDriveFileHolder googleDriveFileHolder = new GoogleDriveFileHolder();
-//                googleDriveFileHolder.setId(result.getFiles().get(i).getId());
-//                googleDriveFileHolder.setName(result.getFiles().get(i).getName());
-//
-//                fileList.add(googleDriveFileHolder);
-//            }
             Log.e(TAG, "getFolderFileList: folderFiles: "+result );
             return result;
         });
@@ -99,15 +47,9 @@ public class GoogleDriveServiceHelper {
 
 
     /**
-     * Upload the file to the user's My Drive Folder.
+     * Upload the file to the user's Drive appDataFolder.
      */
-    public Task<File> uploadFileToGoogleDrive(String path,String mimeType) {
-
-        if (folderId.isEmpty()){
-            Log.e(TAG, "uploadFileToGoogleDrive: folder id not present" );
-            isFolderPresent().addOnSuccessListener(id -> folderId=id)
-                    .addOnFailureListener(exception -> Log.e(TAG, "Couldn't create file.", exception));
-        }
+    public Task<String> uploadFileToGoogleDrive(String path,String mimeType) {
 
         return Tasks.call(mExecutor, () -> {
 
@@ -116,7 +58,7 @@ public class GoogleDriveServiceHelper {
 
             File fileMetadata = new File();
             fileMetadata.setName(filePath.getName());
-            fileMetadata.setParents(Collections.singletonList(folderId));
+            fileMetadata.setParents(Collections.singletonList("appDataFolder"));
             fileMetadata.setMimeType(mimeType);
 
             FileContent mediaContent = new FileContent(mimeType, filePath);
@@ -125,12 +67,12 @@ public class GoogleDriveServiceHelper {
                     .execute();
             System.out.println("File ID: " + file.getId());
 
-            return file;
+            return file.getId();
         });
     }
 
     /**
-     * Download file from the user's My Drive Folder.
+     * Download file from the user's Drive
      */
     public Task<Boolean> downloadFile(final java.io.File fileSaveLocation, final String fileId) {
         return Tasks.call(mExecutor, new Callable<Boolean>() {
@@ -138,14 +80,14 @@ public class GoogleDriveServiceHelper {
             public Boolean call() throws Exception {
                 // Retrieve the metadata as a File object.
                 OutputStream outputStream = new FileOutputStream(fileSaveLocation);
-              mDriveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
+                mDriveService.files().get(fileId).executeMediaAndDownloadTo(outputStream);
                 return true;
             }
         });
     }
 
     /**
-     * delete file from the user's My Drive Folder.
+     * delete file from the user's Drive
      */
     public Task<Boolean> deleteFolderFile(final String fileId) {
         return Tasks.call(mExecutor, new Callable<Boolean>() {

@@ -72,86 +72,47 @@ public class GoogleDrivePlugin extends Plugin {
     private static final int PICK_FILE_REQUEST = 100;
 
     static GoogleDriveServiceHelper mDriveServiceHelper;
-    static String folderId="";
+    //static String folderId="";
     JSObject ret = new JSObject();
-
-
-
-
     GoogleSignInClient googleSignInClient;
-    LoadToast loadToast;
 
 
-//     Read/Write permission
-  private void requestForStoragePermission(PluginCall call) {
-    Dexter.withContext(getContext())
-            .withPermissions(
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            .withListener(new MultiplePermissionsListener() {
-              @Override
-              public void onPermissionsChecked(MultiplePermissionsReport report) {
-                // check if all permissions are granted
-                if (report.areAllPermissionsGranted()) {
-                  Toast.makeText(getContext(), "All permissions are granted!", Toast.LENGTH_SHORT).show();
-                  signIn(call);
-                }
+    //     Read/Write permission
+    private void requestForStoragePermission(PluginCall call) {
+        Dexter.withContext(getContext())
+                .withPermissions(
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .withListener(new MultiplePermissionsListener() {
+                    @Override
+                    public void onPermissionsChecked(MultiplePermissionsReport report) {
+                        // check if all permissions are granted
+                        if (report.areAllPermissionsGranted()) {
+                            Toast.makeText(getContext(), "All permissions are granted!", Toast.LENGTH_SHORT).show();
+                            signIn(call);
+                        }
 
-                // check for permanent denial of any permission
-                if (report.isAnyPermissionPermanentlyDenied()) {
-                  // show alert dialog navigating to Settings
+                        // check for permanent denial of any permission
+                        if (report.isAnyPermissionPermanentlyDenied()) {
+                            // show alert dialog navigating to Settings
 //                  showSettingsDialog();
-                }
-              }
+                        }
+                    }
 
-              @Override
-              public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {
-                token.continuePermissionRequest();
-              }
-            }).
-            withErrorListener(new PermissionRequestErrorListener() {
-              @Override
-              public void onError(DexterError error) {
-                Toast.makeText(getContext(), "Error occurred! ", Toast.LENGTH_SHORT).show();
-              }
-            })
-            .onSameThread()
-            .check();
-  }
-//
-//  /**
-//   * Showing Alert Dialog with Settings option
-//   * Navigates user to app settings
-//   * NOTE: Keep proper title and message depending on your app
-//   */
-//  private void showSettingsDialog() {
-//    AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-//    builder.setTitle("Need Permissions");
-//    builder.setMessage("This app needs permission to use this feature. You can grant them in app settings.");
-//    builder.setPositiveButton("GOTO SETTINGS", new DialogInterface.OnClickListener() {
-//      @Override
-//      public void onClick(DialogInterface dialog, int which) {
-//        dialog.cancel();
-//        openSettings();
-//      }
-//    });
-//    builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-//      @Override
-//      public void onClick(DialogInterface dialog, int which) {
-//        dialog.cancel();
-//      }
-//    });
-//    builder.show();
-//
-//  }
-//
-//  // navigating user to app settings
-//  private void openSettings() {
-//    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-//    Uri uri = Uri.fromParts("package", getPackageName(), null);
-//    intent.setData(uri);
-//    startActivityForResult(intent, 101);
-//  }
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {
+                        token.continuePermissionRequest();
+                    }
+                }).
+                withErrorListener(new PermissionRequestErrorListener() {
+                    @Override
+                    public void onError(DexterError error) {
+                        Toast.makeText(getContext(), "Error occurred! ", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .onSameThread()
+                .check();
+    }
 
 
     @ActivityCallback
@@ -172,7 +133,7 @@ public class GoogleDrivePlugin extends Plugin {
                     // Use the authenticated account to sign in to the Drive service.
                     GoogleAccountCredential credential =
                             GoogleAccountCredential.usingOAuth2(
-                                    getContext(), Collections.singleton(DriveScopes.DRIVE_FILE));
+                                    getContext(), Collections.singleton(DriveScopes.DRIVE_APPDATA));
                     credential.setSelectedAccount(googleAccount.getAccount());
                     Drive googleDriveService =
                             new Drive.Builder(
@@ -185,14 +146,13 @@ public class GoogleDrivePlugin extends Plugin {
                     // The DriveServiceHelper encapsulates all REST API and SAF functionality.
                     // Its instantiation is required before handling any onClick actions.
                     mDriveServiceHelper = new GoogleDriveServiceHelper(googleDriveService);
+                    Log.i("SignIn","SignIn Successfull");
 
-                    showMessage("Sign-In Success");
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception exception) {
                         Log.e(TAG, "Unable to sign in.", exception);
-                        showMessage("Unable to sign in.");
                     }
                 });
     }
@@ -204,7 +164,8 @@ public class GoogleDrivePlugin extends Plugin {
 
         GoogleSignInOptions signInOptions =
                 new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                        .requestScopes(new Scope(DriveScopes.DRIVE_FILE))
+                        .requestScopes(new Scope(DriveScopes.DRIVE_APPDATA))
+                        .requestScopes(new Scope(DriveScopes.DRIVE_READONLY))
                         .requestEmail()
                         .build();
 
@@ -214,56 +175,7 @@ public class GoogleDrivePlugin extends Plugin {
         startActivityForResult(call, googleSignInClient.getSignInIntent(), "onSignIn");
     }
 
-
     @PluginMethod
-    // This method will get call when user click on create folder button
-    public void createFolder(PluginCall call) {
-        if (mDriveServiceHelper != null) {
-
-            // check folder present or not
-            mDriveServiceHelper.isFolderPresent()
-                    .addOnSuccessListener(new OnSuccessListener<String>() {
-                        @Override
-                        public void onSuccess(String id) {
-                            if (id.isEmpty()){
-                                mDriveServiceHelper.createFolder()
-                                        .addOnSuccessListener(new OnSuccessListener<String>() {
-                                            @Override
-                                            public void onSuccess(String fileId) {
-                                                Log.e(TAG, "folder id: "+fileId );
-                                                folderId=fileId;
-                                                showMessage("Folder Created with id: "+fileId);
-                                                ret.put("folder" , fileId);
-                                                call.resolve(ret);
-
-                                            }
-                                        })
-                                        .addOnFailureListener(new OnFailureListener() {
-                                            @Override
-                                            public void onFailure(@NonNull Exception exception) {
-                                                showMessage("Couldn't create file.");
-                                                Log.e(TAG, "Couldn't create file.", exception);
-                                                call.reject(exception.getLocalizedMessage());
-                                            }
-                                        });
-                            }else {
-                                folderId=id;
-                                showMessage("Folder already present");
-                            }
-
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception exception) {
-                            showMessage("Couldn't create file..");
-                            Log.e(TAG, "Couldn't create file..", exception);
-                        }
-                    });
-        }
-    }
-    @PluginMethod
-    // This method will get call when user click on folder data button
     public void getFolderData(PluginCall call) {
         if (mDriveServiceHelper != null) {
 
@@ -271,7 +183,6 @@ public class GoogleDrivePlugin extends Plugin {
                     .addOnSuccessListener(new OnSuccessListener<FileList>() {
                         @Override
                         public void onSuccess(FileList fileList) {
-                            showMessage("Success");
                             Log.e(TAG, "onSuccess: result: "+fileList );
                             ret.put("result", fileList);
                             call.resolve(ret);
@@ -280,9 +191,8 @@ public class GoogleDrivePlugin extends Plugin {
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            showMessage("Fail");
                             Log.e(TAG, "onfail: err: "+e.toString() );
-                            call.reject(e.getLocalizedMessage());
+                            call.reject(e.toString());
                         }
                     });
         }
@@ -290,20 +200,18 @@ public class GoogleDrivePlugin extends Plugin {
     @PluginMethod
     // This method will get call when user click on upload file button
     public void uploadFile(PluginCall call) {
-                    String filePath = call.getString("filePath");
-                    String mimeType = call.getString("mimeType");
-        // Get the Uri of the selected file
-        String selectedFilePath = "/storage/emulated/0/Movies/ScreenRecord/20201217120339.mp4";
+        String filePath = call.getString("filePath");
+        String mimeType = call.getString("mimeType");
 
 
-        if(selectedFilePath != null && !selectedFilePath.equals("")){
+        if(filePath != null && !filePath.equals("")){
             if (mDriveServiceHelper != null) {
                 requestForStoragePermission(call);
                 mDriveServiceHelper.uploadFileToGoogleDrive(filePath,mimeType)
-                        .addOnSuccessListener(new OnSuccessListener<com.google.api.services.drive.model.File>() {
+                        .addOnSuccessListener(new OnSuccessListener<String>() {
                             @Override
-                            public void onSuccess(com.google.api.services.drive.model.File result) {
-                                showMessage("File uploaded ...!!");
+                            public void onSuccess(String result) {
+                                Log.i("File","File uploaded Successfully");
                                 ret.put("File",result);
                                 call.resolve(ret);
                             }
@@ -311,13 +219,15 @@ public class GoogleDrivePlugin extends Plugin {
                         .addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(@NonNull Exception e) {
-                                showMessage("Couldn't able to upload file, error: "+e);
-                                call.reject(e.getLocalizedMessage());
+                                Log.e("Fail",e.toString());
+                                call.reject(e.toString());
                             }
                         });
             }
         }else{
-            Toast.makeText(getContext(),"Cannot upload file to server",Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getContext(),"Cannot upload file to server",Toast.LENGTH_SHORT).show();
+            Log.i("Fail","Cannot upload file to server");
+
         }
     }
     @PluginMethod
@@ -329,13 +239,12 @@ public class GoogleDrivePlugin extends Plugin {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
 
-                            showMessage("Sign-Out");
+                            Log.i("Sign out","Sign out Successfully");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception exception) {
-                            showMessage("Unable to sign out.");
                             Log.e(TAG, "Unable to sign out.", exception);
                             call.reject(exception.getLocalizedMessage());
                         }
@@ -348,31 +257,62 @@ public class GoogleDrivePlugin extends Plugin {
 //        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileName = call.getString("fileName");
         String fileId = call.getString("fileId");
-        String fileStorePath = call.getString("dawnloadPath");
+        String fileStorePath = call.getString("fileStorePath");
+//I will create a folder if not exist
+        File file = new File(fileStorePath);
+        if (!file.exists()) {
+            file.mkdir();
+        }
+
         mDriveServiceHelper.downloadFile(new java.io.File(fileStorePath, fileName), fileId)
                 .addOnSuccessListener(new OnSuccessListener<Boolean>() {
                     @Override
                     public void onSuccess(Boolean result) {
 
                         if (result)
-                            showMessage("Successfully downloaded file ...!!");
+                        Log.i("File","Successfully downloaded file ...!!");
                         else
-                            showMessage("Not Able to downloaded file ...!!");
+                        Log.i("File","Not Able to downloaded file ...!!");
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.e("TAG", "onFailure: error: "+e.getMessage());
-                        showMessage("Got error while downloading file.");
-                        call.reject(e.getLocalizedMessage());
+                        call.reject(e.toString());
                     }
                 });
 
     }
+    
 
-    public void showMessage(String message) {
-        Log.i(TAG, message);
-        Toast.makeText(getContext(),message, Toast.LENGTH_SHORT).show();
+    @PluginMethod
+    public void deleteFile(PluginCall call){
+        requestForStoragePermission(call);
+//        String fileStorePath = "/storage/emulated/0/Example_Download";
+        String fileId = call.getString("fileId");
+        mDriveServiceHelper.deleteFolderFile(fileId).addOnSuccessListener(new OnSuccessListener<Boolean>() {
+            @Override
+            public void onSuccess(Boolean aBoolean) {
+                ret.put("result",aBoolean);
+                call.resolve(ret);
+            }
+        })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        call.reject(e.toString());
+                    }
+                });
+
+
     }
+
+
+
+//
+//    public void showMessage(String message) {
+//        Log.i(TAG, message);
+//        Toast.makeText(getContext(),message, Toast.LENGTH_SHORT).show();
+//    }
 }
