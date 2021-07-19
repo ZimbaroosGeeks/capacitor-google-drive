@@ -57,6 +57,8 @@ import android.widget.Button;
 import android.widget.Toast;
 import net.steamcrafted.loadtoast.LoadToast;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,13 +69,13 @@ import java.util.concurrent.Executor;
 @CapacitorPlugin(name = "GoogleDrive")
 public class GoogleDrivePlugin extends Plugin {
     private static final String TAG = "MainActivity";
-
-    private static final int REQUEST_CODE_SIGN_IN = 1;
-    private static final int PICK_FILE_REQUEST = 100;
+//
+//    private static final int REQUEST_CODE_SIGN_IN = 1;
+//    private static final int PICK_FILE_REQUEST = 100;
 
     static GoogleDriveServiceHelper mDriveServiceHelper;
     //static String folderId="";
-    JSObject ret = new JSObject();
+//    JSObject ret = new JSObject();
     GoogleSignInClient googleSignInClient;
 
 
@@ -118,50 +120,61 @@ public class GoogleDrivePlugin extends Plugin {
     @ActivityCallback
     public void onSignIn(PluginCall call,ActivityResult result) {
         Log.i("Sign In", result.getData().toString());
-        handleSignInResult(result.getData());
-
+        handleSignInResult(call, result.getData());
+        Log.i("hiiihihihihih"," ygduiyg");
     }
 
     /**
      * Handles the {@code result} of a completed sign-in activity initiated from {@link
      */
-    private void handleSignInResult(Intent result) {
-        GoogleSignIn.getSignedInAccountFromIntent(result)
-                .addOnSuccessListener(googleAccount -> {
-                    Log.d(TAG, "Signed in as " + googleAccount.getEmail());
+    private void handleSignInResult(PluginCall call, Intent result) {
+        try {
+            GoogleSignIn.getSignedInAccountFromIntent(result)
+                    .addOnSuccessListener(googleAccount -> {
+                        try {
+                            Log.d(TAG, "Signed in as " + googleAccount.getEmail());
 
-                    // Use the authenticated account to sign in to the Drive service.
-                    GoogleAccountCredential credential =
-                            GoogleAccountCredential.usingOAuth2(
-                                    getContext(), Collections.singleton(DriveScopes.DRIVE_APPDATA));
-                    credential.setSelectedAccount(googleAccount.getAccount());
-                    Drive googleDriveService =
-                            new Drive.Builder(
-                                    AndroidHttp.newCompatibleTransport(),
-                                    new GsonFactory(),
-                                    credential)
-                                    .setApplicationName("Drive API Migration")
-                                    .build();
+                            // Use the authenticated account to sign in to the Drive service.
+                            GoogleAccountCredential credential =
+                                    GoogleAccountCredential.usingOAuth2(
+                                            getContext(), Collections.singleton(DriveScopes.DRIVE_APPDATA));
+                            credential.setSelectedAccount(googleAccount.getAccount());
+                            Drive googleDriveService =
+                                    new Drive.Builder(
+                                            AndroidHttp.newCompatibleTransport(),
+                                            new GsonFactory(),
+                                            credential)
+                                            .setApplicationName("Drive API Migration")
+                                            .build();
 
-                    // The DriveServiceHelper encapsulates all REST API and SAF functionality.
-                    // Its instantiation is required before handling any onClick actions.
-                    mDriveServiceHelper = new GoogleDriveServiceHelper(googleDriveService);
-                    Log.i("SignIn","SignIn Successfull");
-
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        Log.e(TAG, "Unable to sign in.", exception);
-                    }
-                });
+                            // The DriveServiceHelper encapsulates all REST API and SAF functionality.
+                            // Its instantiation is required before handling any onClick actions.
+                            mDriveServiceHelper = new GoogleDriveServiceHelper(googleDriveService);
+                            Log.i("SignIn","SignIn Successfull");
+                            JSObject response = new JSObject();
+                            response.put("isSignIn", true);
+                            response.put("SignIn Account", googleAccount.getEmail());
+                            call.resolve(response);
+                        } catch (Exception e) {
+                            call.reject(e.toString());
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            Log.e(TAG, "Unable to sign in.", exception);
+                            call.reject(exception.toString());
+                        }
+                    });
+        } catch (Exception e) {
+            call.reject(e.toString());
+        }
     }
 
     // This method will get call when user click on sign-in button
     @PluginMethod
     public void signIn(PluginCall call) {
         Log.d(TAG, "Requesting sign-in");
-
         GoogleSignInOptions signInOptions =
                 new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestScopes(new Scope(DriveScopes.DRIVE_APPDATA))
@@ -177,6 +190,7 @@ public class GoogleDrivePlugin extends Plugin {
 
     @PluginMethod
     public void getFolderData(PluginCall call) {
+        JSObject ret = new JSObject();
         if (mDriveServiceHelper != null) {
 
             mDriveServiceHelper.getFolderFileList()
@@ -202,8 +216,7 @@ public class GoogleDrivePlugin extends Plugin {
     public void uploadFile(PluginCall call) {
         String filePath = call.getString("filePath");
         String mimeType = call.getString("mimeType");
-
-
+        JSObject ret = new JSObject();
         if(filePath != null && !filePath.equals("")){
             if (mDriveServiceHelper != null) {
                 requestForStoragePermission(call);
@@ -212,6 +225,7 @@ public class GoogleDrivePlugin extends Plugin {
                             @Override
                             public void onSuccess(String result) {
                                 Log.i("File","File uploaded Successfully");
+                                Log.i("res",result);
                                 ret.put("File",result);
                                 call.resolve(ret);
                             }
@@ -227,12 +241,13 @@ public class GoogleDrivePlugin extends Plugin {
         }else{
 //            Toast.makeText(getContext(),"Cannot upload file to server",Toast.LENGTH_SHORT).show();
             Log.i("Fail","Cannot upload file to server");
-
+            call.reject("Fail to upload file");
         }
     }
     @PluginMethod
     // This method will get call when user click on sign-out button
     public void signOut(PluginCall call) {
+        JSObject ret = new JSObject();
         if (googleSignInClient != null){
             googleSignInClient.signOut()
                     .addOnCompleteListener(getActivity(), new OnCompleteListener<Void>() {
@@ -240,6 +255,8 @@ public class GoogleDrivePlugin extends Plugin {
                         public void onComplete(@NonNull Task<Void> task) {
 
                             Log.i("Sign out","Sign out Successfully");
+                            ret.put("Sign Out",true);
+                            call.resolve(ret);
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -253,6 +270,7 @@ public class GoogleDrivePlugin extends Plugin {
     }
     @PluginMethod
     public void dawnloadFile(PluginCall call) {
+        JSObject ret = new JSObject();
         requestForStoragePermission(call);
 //        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileName = call.getString("fileName");
@@ -270,10 +288,15 @@ public class GoogleDrivePlugin extends Plugin {
                         @Override
                         public void onSuccess(Boolean result) {
 
-                            if (result)
+                            if (result) {
                                 Log.i("File", "Successfully downloaded file ...!!");
+                                ret.put("file downloaded successfully",result);
+                                call.resolve(ret);
+                            }
+
                             else
                                 Log.i("File", "Not Able to downloaded file ...!!");
+                            call.reject("Not Able to downloaded file ...!!");
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -290,6 +313,7 @@ public class GoogleDrivePlugin extends Plugin {
 
     @PluginMethod
     public void deleteFile(PluginCall call){
+        JSObject ret = new JSObject();
         requestForStoragePermission(call);
 //        String fileStorePath = "/storage/emulated/0/Example_Download";
         String fileId = call.getString("fileId");
