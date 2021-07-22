@@ -121,7 +121,6 @@ public class GoogleDrivePlugin extends Plugin {
     public void onSignIn(PluginCall call,ActivityResult result) {
         Log.i("Sign In", result.getData().toString());
         handleSignInResult(call, result.getData());
-        Log.i("hiiihihihihih"," ygduiyg");
     }
 
     /**
@@ -294,9 +293,10 @@ public class GoogleDrivePlugin extends Plugin {
                                 call.resolve(ret);
                             }
 
-                            else
+                            else {
                                 Log.i("File", "Not Able to downloaded file ...!!");
-                            call.reject("Not Able to downloaded file ...!!");
+                                call.reject("Not Able to downloaded file ...!!");
+                            }
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
