@@ -24,6 +24,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.os.Bundle;
+
+import com.getcapacitor.annotation.Permission;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -66,7 +68,11 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 
-@CapacitorPlugin(name = "GoogleDrive")
+@CapacitorPlugin(name = "GoogleDrive",
+permissions={
+    @Permission(strings= {Manifest.permission.READ_EXTERNAL_STORAGE}),
+    @Permission(strings = {Manifest.permission.WRITE_EXTERNAL_STORAGE})
+})
 public class GoogleDrivePlugin extends Plugin {
     private static final String TAG = "MainActivity";
 //
